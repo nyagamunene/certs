@@ -32,6 +32,7 @@ const (
 	token           = "token"
 	ocspStatusParam = "force_status"
 	entityIDParam   = "entityID"
+	entityTypeParam = "entityType"
 	ttl             = "ttl"
 	defOffset       = 0
 	defLimit        = 10
@@ -47,7 +48,7 @@ func MakeHandler(svc certs.Service, logger *slog.Logger, instanceID string) http
 	r := chi.NewRouter()
 
 	r.Route("/certs", func(r chi.Router) {
-		r.Post("/issue/{entityID}", otelhttp.NewHandler(kithttp.NewServer(
+		r.Post("/issue/{entityType}/{entityID}", otelhttp.NewHandler(kithttp.NewServer(
 			issueCertEndpoint(svc),
 			decodeIssueCert,
 			EncodeResponse,
@@ -218,7 +219,8 @@ func decodeIssueCert(_ context.Context, r *http.Request) (any, error) {
 		return nil, ErrMissingCN
 	}
 	req := issueCertReq{
-		entityID: chi.URLParam(r, entityIDParam),
+		entityID:   chi.URLParam(r, entityIDParam),
+		entityType: chi.URLParam(r, entityTypeParam),
 		Options: certs.SubjectOptions{
 			CommonName: cn,
 		},

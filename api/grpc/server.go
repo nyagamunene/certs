@@ -18,8 +18,12 @@ import (
 var _ certs.CertsServiceServer = (*grpcServer)(nil)
 
 type grpcServer struct {
-	getEntity   kitgrpc.Handler
-	revokeCerts kitgrpc.Handler
+	getEntity             kitgrpc.Handler
+	revokeCerts           kitgrpc.Handler
+	retrieveCert          kitgrpc.Handler
+	retrieveDownloadToken kitgrpc.Handler
+	issueCert             kitgrpc.Handler
+	getCA                 kitgrpc.Handler
 	certs.UnimplementedCertsServiceServer
 }
 
@@ -34,6 +38,26 @@ func NewServer(svc certs.Service) certs.CertsServiceServer {
 			(revokeCertsEndpoint(svc)),
 			decodeRevokeCertsReq,
 			encodeRevokeCertsRes,
+		),
+		retrieveCert: kitgrpc.NewServer(
+			(retrieveCert(svc)),
+			decodeRetrieveCertReq,
+			encodeRetrieveCertRes,
+		),
+		retrieveDownloadToken: kitgrpc.NewServer(
+			(retrieveDownloadToken(svc)),
+			decoderetrieveDownloadTokenReq,
+			encoderetrieveDownloadTokenRes,
+		),
+		issueCert: kitgrpc.NewServer(
+			(issueEndpoint(svc)),
+			decodeIssueCertReq,
+			encodeIssueCertRes,
+		),
+		getCA: kitgrpc.NewServer(
+			(getCAEndpoint(svc)),
+			decodeGetCAReq,
+			encodeGetCARes,
 		),
 	}
 }
@@ -54,6 +78,38 @@ func encodeRevokeCertsRes(_ context.Context, res any) (any, error) {
 	return res.(*emptypb.Empty), nil
 }
 
+func decodeRetrieveCertReq(_ context.Context, req interface{}) (interface{}, error) {
+	return req.(*certs.RetrieveCertReq), nil
+}
+
+func encodeRetrieveCertRes(_ context.Context, res interface{}) (interface{}, error) {
+	return res.(*certs.CertificateBundle), nil
+}
+
+func decoderetrieveDownloadTokenReq(_ context.Context, req interface{}) (interface{}, error) {
+	return req.(*certs.RetrieveCertDownloadTokenReq), nil
+}
+
+func encoderetrieveDownloadTokenRes(_ context.Context, res interface{}) (interface{}, error) {
+	return res.(*certs.RetrieveCertDownloadTokenRes), nil
+}
+
+func decodeIssueCertReq(_ context.Context, req interface{}) (interface{}, error) {
+	return req.(*certs.IssueCertReq), nil
+}
+
+func encodeIssueCertRes(_ context.Context, res interface{}) (interface{}, error) {
+	return res.(*certs.IssueCertRes), nil
+}
+
+func decodeGetCAReq(_ context.Context, req interface{}) (interface{}, error) {
+	return req.(*certs.GetCAReq), nil
+}
+
+func encodeGetCARes(_ context.Context, res interface{}) (interface{}, error) {
+	return res.(*certs.Certificate), nil
+}
+
 // GetEntityID returns the entity ID for the given entity request.
 func (g *grpcServer) GetEntityID(ctx context.Context, req *certs.EntityReq) (*certs.EntityRes, error) {
 	_, res, err := g.getEntity.ServeGRPC(context.Background(), req)
@@ -69,6 +125,30 @@ func (g *grpcServer) RevokeCerts(ctx context.Context, req *certs.RevokeReq) (*em
 		return &emptypb.Empty{}, encodeError(err)
 	}
 	return res.(*emptypb.Empty), nil
+}
+
+func (g *grpcServer) RetrieveCertDownloadToken(ctx context.Context, req *certs.RetrieveCertDownloadTokenReq) (*certs.RetrieveCertDownloadTokenRes, error) {
+	_, res, err := g.retrieveDownloadToken.ServeGRPC(context.Background(), req)
+	if err != nil {
+		return nil, encodeError(err)
+	}
+	return res.(*certs.RetrieveCertDownloadTokenRes), nil
+}
+
+func (g *grpcServer) IssueCert(ctx context.Context, req *certs.IssueCertReq) (*certs.IssueCertRes, error) {
+	_, res, err := g.issueCert.ServeGRPC(context.Background(), req)
+	if err != nil {
+		return &certs.IssueCertRes{}, encodeError(err)
+	}
+	return res.(*certs.IssueCertRes), nil
+}
+
+func (g *grpcServer) GetCA(ctx context.Context, req *certs.GetCAReq) (*certs.Cert, error) {
+	_, res, err := g.getCA.ServeGRPC(context.Background(), req)
+	if err != nil {
+		return nil, encodeError(err)
+	}
+	return res.(*certs.Cert), nil
 }
 
 func encodeError(err error) error {

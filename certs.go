@@ -14,6 +14,14 @@ import (
 	"github.com/absmach/certs/errors"
 )
 
+type EntityType string
+
+const (
+	EntityTypeBackend EntityType = "backend"
+	EntityTypeCVM     EntityType = "cvm"
+	CommonName                   = "Ultraviolet"
+)
+
 type CertType int
 
 const (
@@ -165,7 +173,7 @@ type Service interface {
 	RetrieveCAToken(ctx context.Context) (string, error)
 
 	// IssueCert issues a certificate from the database.
-	IssueCert(ctx context.Context, entityID, ttl string, ipAddrs []string, option SubjectOptions) (Certificate, error)
+	IssueCert(ctx context.Context, entityID, entityType, ttl string, ipAddrs []string, option SubjectOptions) (Certificate, error)
 
 	// OCSP forwards OCSP requests to OpenBao's OCSP endpoint.
 	OCSP(ctx context.Context, serialNumber string) ([]byte, error)
@@ -181,4 +189,7 @@ type Service interface {
 
 	// IssueFromCSR creates a certificate from a given CSR.
 	IssueFromCSR(ctx context.Context, entityID, ttl string, csr CSR) (Certificate, error)
+
+	// GetCA retieve CA certificates.
+	GetCA(ctx context.Context) (Certificate, error)
 }
