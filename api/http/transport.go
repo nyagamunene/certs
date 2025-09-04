@@ -7,12 +7,14 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"encoding/asn1"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/absmach/certs"
 	"github.com/absmach/certs/errors"
@@ -20,7 +22,10 @@ import (
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"golang.org/x/crypto/ocsp"
 )
+
+var idPKIXOCSPBasic = asn1.ObjectIdentifier([]int{1, 3, 6, 1, 5, 5, 7, 48, 1, 1})
 
 const (
 	offsetKey       = "offset"
@@ -37,6 +42,16 @@ const (
 	defLimit        = 10
 	defType         = 1
 )
+
+type responseASN1 struct {
+	Status   asn1.Enumerated
+	Response responseBytes `asn1:"explicit,tag:0,optional"`
+}
+
+type responseBytes struct {
+	ResponseType asn1.ObjectIdentifier
+	Response     []byte
+}
 
 // MakeHandler returns a HTTP handler for API endpoints.
 func MakeHandler(svc certs.Service, logger *slog.Logger, instanceID string) http.Handler {
@@ -192,15 +207,17 @@ func decodeDownloadCA(_ context.Context, r *http.Request) (any, error) {
 }
 
 func decodeOCSPRequest(_ context.Context, r *http.Request) (any, error) {
-	var request ocspCheckReq
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		return nil, errors.Wrap(certs.ErrMalformedEntity, err)
+		return nil, err
 	}
-	defer r.Body.Close()
-
-	if err := json.Unmarshal(body, &request); err != nil {
-		return nil, errors.Wrap(certs.ErrMalformedEntity, err)
+	req, err := ocsp.ParseRequest(body)
+	if err != nil {
+		return nil, err
+	}
+	request := ocspReq{
+		req:         req,
+		statusParam: strings.TrimSpace(r.URL.Query().Get(ocspStatusParam)),
 	}
 	return request, nil
 }
@@ -297,10 +314,33 @@ func EncodeResponse(_ context.Context, w http.ResponseWriter, response any) erro
 }
 
 func encodeOSCPResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
-	res := response.(ocspRawRes)
+	res := response.(ocspRes)
+	if res.template.Certificate == nil {
+		ocspRes, err := asn1.Marshal(responseASN1{
+			Status: asn1.Enumerated(ocsp.Malformed),
+			Response: responseBytes{
+				ResponseType: idPKIXOCSPBasic,
+			},
+		})
+		if err != nil {
+			return err
+		}
 
+		w.Header().Set("Content-Type", OCSPType)
+		if _, err := w.Write(ocspRes); err != nil {
+			return err
+		}
+
+		return err
+	}
+	ocspRes, err := ocsp.CreateResponse(res.issuerCert, res.template.Certificate, res.template, res.signer)
+	if err != nil {
+		return err
+	}
 	w.Header().Set("Content-Type", OCSPType)
-	_, err := w.Write(res.Data)
+	if _, err := w.Write(ocspRes); err != nil {
+		return err
+	}
 	return err
 }
 

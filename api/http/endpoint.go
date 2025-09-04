@@ -5,9 +5,16 @@ package http
 
 import (
 	"context"
+	"crypto"
+	"crypto/x509"
+	"encoding/pem"
+	"math/rand"
+	"strings"
+	"time"
 
 	"github.com/absmach/certs"
 	"github.com/go-kit/kit/endpoint"
+	"golang.org/x/crypto/ocsp"
 )
 
 func renewCertEndpoint(svc certs.Service) endpoint.Endpoint {
@@ -171,18 +178,67 @@ func viewCertEndpoint(svc certs.Service) endpoint.Endpoint {
 
 func ocspEndpoint(svc certs.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request any) (response any, err error) {
-		req := request.(ocspCheckReq)
+		req := request.(ocspReq)
 		if err := req.validate(); err != nil {
 			return nil, err
 		}
 
-		resBytes, err := svc.OCSP(ctx, req.SerialNumber)
+		cert, status, issuerCert, err := svc.OCSP(ctx, req.req.SerialNumber.String())
 		if err != nil {
 			return nil, err
 		}
 
-		return ocspRawRes{
-			Data: resBytes,
+		switch strings.ToUpper(req.statusParam) {
+		case "REVOKE":
+			status = ocsp.Revoked
+		case "GOOD":
+			status = ocsp.Good
+		case "SERVERFAILED":
+			status = ocsp.ServerFailed
+		case "RANDOM":
+			r := rand.New(rand.NewSource(int64(time.Now().Nanosecond())))
+			status = r.Intn(ocsp.ServerFailed)
+		}
+
+		template := ocsp.Response{
+			Status:       status,
+			SerialNumber: req.req.SerialNumber,
+			ThisUpdate:   time.Now().UTC(),
+			NextUpdate:   time.Now().UTC(),
+			IssuerHash:   req.req.HashAlgorithm,
+		}
+		if template.Status == ocsp.Revoked {
+			template.RevokedAt = time.Now().UTC()
+		}
+		var signer crypto.Signer
+
+		if cert != nil {
+			if cert.Revoked {
+				template.RevokedAt = cert.ExpiryTime
+				template.RevocationReason = ocsp.Unspecified
+			}
+			pemBlock, _ := pem.Decode(cert.Certificate)
+			parsedCert, err := x509.ParseCertificate(pemBlock.Bytes)
+			if err != nil {
+				return nil, err
+			}
+			template.Certificate = parsedCert
+			keyBlock, _ := pem.Decode(cert.Key)
+			privKey, err := x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
+			if err != nil {
+				return nil, err
+			}
+			signer = privKey
+			if !parsedCert.NotAfter.After(time.Now().UTC()) {
+				template.Status = ocsp.Revoked
+				template.RevocationReason = ocsp.CessationOfOperation
+			}
+		}
+
+		return ocspRes{
+			template:   template,
+			issuerCert: issuerCert,
+			signer:     signer,
 		}, nil
 	}
 }

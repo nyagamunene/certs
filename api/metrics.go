@@ -5,6 +5,7 @@ package api
 
 import (
 	"context"
+	"crypto/x509"
 	"time"
 
 	"github.com/absmach/certs"
@@ -103,7 +104,7 @@ func (mm *metricsMiddleware) ViewCert(ctx context.Context, serialNumber string) 
 	return mm.svc.ViewCert(ctx, serialNumber)
 }
 
-func (mm *metricsMiddleware) OCSP(ctx context.Context, serialNumber string) ([]byte, error) {
+func (mm *metricsMiddleware) OCSP(ctx context.Context, serialNumber string) (*certs.Certificate, int, *x509.Certificate, error) {
 	defer func(begin time.Time) {
 		mm.counter.With("method", "ocsp").Add(1)
 		mm.latency.With("method", "ocsp").Observe(time.Since(begin).Seconds())

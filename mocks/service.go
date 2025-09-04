@@ -8,6 +8,7 @@ package mocks
 
 import (
 	"context"
+	"crypto/x509"
 
 	"github.com/absmach/certs"
 	mock "github.com/stretchr/testify/mock"
@@ -469,31 +470,45 @@ func (_c *Service_ListCerts_Call) RunAndReturn(run func(ctx context.Context, pm 
 }
 
 // OCSP provides a mock function for the type Service
-func (_mock *Service) OCSP(ctx context.Context, serialNumber string) ([]byte, error) {
+func (_mock *Service) OCSP(ctx context.Context, serialNumber string) (*certs.Certificate, int, *x509.Certificate, error) {
 	ret := _mock.Called(ctx, serialNumber)
 
 	if len(ret) == 0 {
 		panic("no return value specified for OCSP")
 	}
 
-	var r0 []byte
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]byte, error)); ok {
+	var r0 *certs.Certificate
+	var r1 int
+	var r2 *x509.Certificate
+	var r3 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*certs.Certificate, int, *x509.Certificate, error)); ok {
 		return returnFunc(ctx, serialNumber)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []byte); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *certs.Certificate); ok {
 		r0 = returnFunc(ctx, serialNumber)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]byte)
+			r0 = ret.Get(0).(*certs.Certificate)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) int); ok {
 		r1 = returnFunc(ctx, serialNumber)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string) *x509.Certificate); ok {
+		r2 = returnFunc(ctx, serialNumber)
+	} else {
+		if ret.Get(2) != nil {
+			r2 = ret.Get(2).(*x509.Certificate)
+		}
+	}
+	if returnFunc, ok := ret.Get(3).(func(context.Context, string) error); ok {
+		r3 = returnFunc(ctx, serialNumber)
+	} else {
+		r3 = ret.Error(3)
+	}
+	return r0, r1, r2, r3
 }
 
 // Service_OCSP_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'OCSP'
@@ -526,12 +541,12 @@ func (_c *Service_OCSP_Call) Run(run func(ctx context.Context, serialNumber stri
 	return _c
 }
 
-func (_c *Service_OCSP_Call) Return(bytes []byte, err error) *Service_OCSP_Call {
-	_c.Call.Return(bytes, err)
+func (_c *Service_OCSP_Call) Return(certificate *certs.Certificate, status int, issuerCert *x509.Certificate, err error) *Service_OCSP_Call {
+	_c.Call.Return(certificate, status, issuerCert, err)
 	return _c
 }
 
-func (_c *Service_OCSP_Call) RunAndReturn(run func(ctx context.Context, serialNumber string) ([]byte, error)) *Service_OCSP_Call {
+func (_c *Service_OCSP_Call) RunAndReturn(run func(ctx context.Context, serialNumber string) (*certs.Certificate, int, *x509.Certificate, error)) *Service_OCSP_Call {
 	_c.Call.Return(run)
 	return _c
 }
