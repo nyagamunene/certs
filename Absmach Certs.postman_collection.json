@@ -1,0 +1,681 @@
+{
+	"info": {
+		"_postman_id": "f92d112b-1cb3-4f69-a6dd-f7ec4d3e88b8",
+		"name": "Absmach Certs",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "33401952"
+	},
+	"item": [
+		{
+			"name": "Issue Certs",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Stores the serial in an environment or global variable",
+							"var serial = pm.response.json().serial_number;",
+							"pm.globals.set(\"SERIALNO\", serial);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"ip_addresses\": [\n        \"192.168.100.20\"\n    ],\n    \"ttl\": \"10h\",\n    \"options\": {\n        \"organization\" : [\"UV\"]\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:9010/certs/issue/{{ENTITY_ID}}?common_name=thing",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs",
+						"issue",
+						"{{ENTITY_ID}}"
+					],
+					"query": [
+						{
+							"key": "common_name",
+							"value": "thing"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Renew Certs",
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9010/certs/{{SERIALNO}}/renew",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs",
+						"{{SERIALNO}}",
+						"renew"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Revoke Certs",
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9010/certs/{{SERIALNO}}/revoke",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs",
+						"{{SERIALNO}}",
+						"revoke"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Request for Token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Stores the download_token in an environment or global variable",
+							"var token = pm.response.json().token;",
+							"pm.globals.set(\"DOWNLOAD_TOKEN\", token);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9010/certs/{{SERIALNO}}/download/token",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs",
+						"{{SERIALNO}}",
+						"download",
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Download Certs",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9010/certs/{{SERIALNO}}/download?token={{DOWNLOAD_TOKEN}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs",
+						"{{SERIALNO}}",
+						"download"
+					],
+					"query": [
+						{
+							"key": "token",
+							"value": "{{DOWNLOAD_TOKEN}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "List Certs",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9010/certs?entity_id={{ENTITY_ID}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs"
+					],
+					"query": [
+						{
+							"key": "entity_id",
+							"value": "{{ENTITY_ID}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "View Certs",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9010/certs/{{SERIALNO}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs",
+						"{{SERIALNO}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Generate CRL",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9010/certs/crl",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs",
+						"crl"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "OCSP",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Test that we get a valid OCSP response",
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has valid OCSP fields\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('status');",
+							"    pm.expect(jsonData).to.have.property('serial_number');",
+							"    pm.expect(jsonData).to.have.property('this_update');",
+							"    pm.expect(jsonData).to.have.property('next_update');",
+							"});",
+							"",
+							"pm.test(\"OCSP status is valid\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    // Status should be 0 (Good), 1 (Revoked), or 2 (Unknown)",
+							"    pm.expect(jsonData.status).to.be.oneOf([0, 1, 2]);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"serial_number\": \"{{SERIALNO}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:9010/certs/ocsp",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs",
+						"ocsp"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "OCSP Good Certificate",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"serial_number\": \"15:71:d7:0b:56:03:27:96:e8:35:ca:11:75:43:9c:32:c7:d5:cd:f9\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:9010/certs/ocsp",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9010",
+							"path": [
+								"certs",
+								"ocsp"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"next_update\": \"2025-09-04T09:27:42.277631559Z\",\n    \"serial_number\": \"122427523393645942505384518528556343505221701113\",\n    \"status\": 0,\n    \"this_update\": \"2025-09-04T09:27:42.277631494Z\"\n}"
+				},
+				{
+					"name": "OCSP Revoked Certificate",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"serial_number\": \"15:71:d7:0b:56:03:27:96:e8:35:ca:11:75:43:9c:32:c7:d5:cd:f9\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:9010/certs/ocsp",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9010",
+							"path": [
+								"certs",
+								"ocsp"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"next_update\": \"2025-09-04T09:28:24.479713356Z\",\n    \"revocation_reason\": 0,\n    \"revoked_at\": \"2025-09-05T09:16:24Z\",\n    \"serial_number\": \"122427523393645942505384518528556343505221701113\",\n    \"status\": 1,\n    \"this_update\": \"2025-09-04T09:28:24.479713265Z\"\n}"
+				}
+			]
+		},
+		{
+			"name": "Request for CA token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Stores the download_token in an environment or global variable",
+							"var token = pm.response.json().token;",
+							"pm.globals.set(\"DOWNLOAD_TOKEN\", token);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9010/certs/get-ca/token",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs",
+						"get-ca",
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Download CA",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9010/certs/download-ca?token={{DOWNLOAD_TOKEN}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs",
+						"download-ca"
+					],
+					"query": [
+						{
+							"key": "token",
+							"value": "{{DOWNLOAD_TOKEN}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "View CA",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9010/certs/view-ca?token={{DOWNLOAD_TOKEN}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs",
+						"view-ca"
+					],
+					"query": [
+						{
+							"key": "",
+							"value": "",
+							"disabled": true
+						},
+						{
+							"key": "token",
+							"value": "{{DOWNLOAD_TOKEN}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Health",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9010/health",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"health"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Certs",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9010/certs/{{ENTITY_ID}}/delete",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs",
+						"{{ENTITY_ID}}",
+						"delete"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create CSR",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Stores the serial in an environment or global variable",
+							"var csrid = pm.response.json().csr_id;",
+							"pm.globals.set(\"CSRID\", csrid);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"metadata\": {\n        \"common_name\": \"thing\"\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:9010/certs/csr/{{ENTITY_ID}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs",
+						"csr",
+						"{{ENTITY_ID}}"
+					],
+					"query": [
+						{
+							"key": "common_name",
+							"value": "thing",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Retrieve CSR",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9010/certs/csr/{{CSRID}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs",
+						"csr",
+						"{{CSRID}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "List CSR",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9010/certs/csr/list?status=all",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs",
+						"csr",
+						"list"
+					],
+					"query": [
+						{
+							"key": "status",
+							"value": "all"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Sign CSR",
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9010/certs/csr/{{CSRID}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9010",
+					"path": [
+						"certs",
+						"csr",
+						"{{CSRID}}"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

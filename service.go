@@ -12,6 +12,7 @@ import (
 
 	"github.com/absmach/certs/errors"
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/ocsp"
 )
 
 const (
@@ -244,10 +245,52 @@ func (s *service) RenewCert(ctx context.Context, serialNumber string) (Certifica
 	return newCert, nil
 }
 
-// OCSP forwards OCSP requests to OpenBao's OCSP endpoint.
-// This method bypasses the custom OCSP implementation and proxies directly to OpenBao.
-func (s *service) OCSP(ctx context.Context, serialNumber string) ([]byte, error) {
-	return s.pki.OCSP(serialNumber)
+// OCSP retrieves the OCSP response for a certificate.
+func (s *service) OCSP(ctx context.Context, serialNumber string) (*Certificate, int, *x509.Certificate, error) {
+	cert, err := s.pki.View(serialNumber)
+	if err != nil {
+		if errors.Contains(err, ErrNotFound) {
+			caCert, caErr := s.getIssuerCertificate()
+			if caErr != nil {
+				return nil, ocsp.ServerFailed, nil, caErr
+			}
+			return nil, ocsp.Unknown, caCert, nil
+		}
+		caCert, caErr := s.getIssuerCertificate()
+		if caErr != nil {
+			return nil, ocsp.ServerFailed, nil, caErr
+		}
+		return nil, ocsp.ServerFailed, caCert, err
+	}
+	
+	caCert, caErr := s.getIssuerCertificate()
+	if caErr != nil {
+		return nil, ocsp.ServerFailed, nil, caErr
+	}
+	
+	if cert.Revoked {
+		return &cert, ocsp.Revoked, caCert, nil
+	}
+	return &cert, ocsp.Good, caCert, nil
+}
+
+func (s *service) getIssuerCertificate() (*x509.Certificate, error) {
+	caBytes, err := s.pki.GetCAChain()
+	if err != nil {
+		return nil, err
+	}
+	
+	pemBlock, _ := pem.Decode(caBytes)
+	if pemBlock == nil {
+		return nil, fmt.Errorf("failed to decode CA certificate PEM")
+	}
+	
+	caCert, err := x509.ParseCertificate(pemBlock.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse CA certificate: %w", err)
+	}
+	
+	return caCert, nil
 }
 
 func (s *service) GetEntityID(ctx context.Context, serialNumber string) (string, error) {
