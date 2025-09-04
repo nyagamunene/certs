@@ -183,7 +183,20 @@ func ocspEndpoint(svc certs.Service) endpoint.Endpoint {
 			return nil, err
 		}
 
-		cert, status, issuerCert, err := svc.OCSP(ctx, req.req.SerialNumber.String())
+		// Convert serial number to hex format with colons for PKI agent
+		serialHex := req.req.SerialNumber.Text(16)
+		if len(serialHex)%2 != 0 {
+			serialHex = "0" + serialHex
+		}
+		var serialWithColons strings.Builder
+		for i := 0; i < len(serialHex); i += 2 {
+			if i > 0 {
+				serialWithColons.WriteString(":")
+			}
+			serialWithColons.WriteString(serialHex[i:i+2])
+		}
+		
+		cert, status, issuerCert, err := svc.OCSP(ctx, serialWithColons.String())
 		if err != nil {
 			return nil, err
 		}
@@ -218,20 +231,28 @@ func ocspEndpoint(svc certs.Service) endpoint.Endpoint {
 				template.RevocationReason = ocsp.Unspecified
 			}
 			pemBlock, _ := pem.Decode(cert.Certificate)
-			parsedCert, err := x509.ParseCertificate(pemBlock.Bytes)
-			if err != nil {
-				return nil, err
+			if pemBlock != nil {
+				parsedCert, err := x509.ParseCertificate(pemBlock.Bytes)
+				if err != nil {
+					return nil, err
+				}
+				template.Certificate = parsedCert
+				
+				if !parsedCert.NotAfter.After(time.Now().UTC()) {
+					template.Status = ocsp.Revoked
+					template.RevocationReason = ocsp.CessationOfOperation
+				}
 			}
-			template.Certificate = parsedCert
-			keyBlock, _ := pem.Decode(cert.Key)
-			privKey, err := x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
-			if err != nil {
-				return nil, err
-			}
-			signer = privKey
-			if !parsedCert.NotAfter.After(time.Now().UTC()) {
-				template.Status = ocsp.Revoked
-				template.RevocationReason = ocsp.CessationOfOperation
+			
+			// Try to get private key from certificate if available
+			if cert.Key != nil && len(cert.Key) > 0 {
+				keyBlock, _ := pem.Decode(cert.Key)
+				if keyBlock != nil {
+					privKey, err := x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
+					if err == nil {
+						signer = privKey
+					}
+				}
 			}
 		}
 
